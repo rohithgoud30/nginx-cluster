@@ -1,0 +1,30 @@
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node.js dependencies (if applicable)
+node_modules/
+
+# Python-related files (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+
+# Secrets
+.env
+config/secrets.yml
+
+# Build and temporary files
+dist/
+build/
+*.tmp
+
+# Docker
+*.dockerfile
+logs/results.jtl 
+
+logs/access.log
+logs/results.jtl

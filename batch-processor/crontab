@@ -1,0 +1,2 @@
+0 20 * * * docker exec batch-processor python /app/batch_processor.py
+

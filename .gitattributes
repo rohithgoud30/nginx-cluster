@@ -1,0 +1,2 @@
+logs/access.log filter=lfs diff=lfs merge=lfs -text
+logs/results.jtl filter=lfs diff=lfs merge=lfs -text

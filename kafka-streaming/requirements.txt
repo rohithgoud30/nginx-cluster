@@ -1,0 +1,2 @@
+kafka-python==2.0.2          # For Kafka Consumer and Producer
+cassandra-driver==3.25.0     # For interacting with Cassandra
