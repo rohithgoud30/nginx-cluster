@@ -1,162 +1,201 @@
 # NGINX Cluster Project
 
-This project implements a scalable NGINX cluster with Kafka, Cassandra, and real-time and batch log processing capabilities. It supports containerized deployment using Docker Compose.
+This project implements a scalable NGINX cluster with Kafka, Cassandra, real-time log processing, and batch processing. It is designed for distributed traffic management, real-time analytics, and daily aggregation.
 
 ---
 
 ## Features
-- **NGINX Load Balancer**: Distributes traffic across multiple web servers.
-- **Kafka Integration**: Facilitates log forwarding and real-time processing.
-- **Cassandra**: Stores results for real-time and batch processing.
-- **Batch and Real-Time Processing**: Process logs and aggregate results.
+- **NGINX Load Balancer**: Routes traffic to web servers.
+- **Kafka Integration**: Manages log forwarding and real-time processing.
+- **Cassandra**: Stores real-time results and daily aggregated data.
+- **Batch Processing**: Automates daily statistics aggregation.
+- **Dockerized Setup**: Easily deployable using Docker Compose.
+
+---
+
+## Table of Contents
+1. [Quick Start](#quick-start)
+2. [Cassandra Schema Initialization](#cassandra-schema-initialization)
+3. [Verification Steps](#verification-steps)
+    - [Phase 1: Environment Setup](#phase-1-environment-setup)
+    - [Phase 2: Log Forwarder and Kafka Integration](#phase-2-log-forwarder-and-kafka-integration)
+    - [Phase 3: Real-Time Processing](#phase-3-real-time-processing)
+    - [Phase 4: Batch Processing](#phase-4-batch-processing)
+4. [Stopping and Cleaning Up](#stopping-and-cleaning-up)
 
 ---
 
 ## Quick Start
 
-### 1. Clone the Repository
-Clone the project to your local machine:
-```bash
-git clone https://github.com/rohithgoud30/nginx-cluster.git
-cd nginx-cluster
-```
-
----
-
-### 2. Run the Project with Docker Compose
-Start all services using Docker Compose:
-```bash
-docker-compose up -d --build
-```
-
-Verify that all services are running:
-```bash
-docker ps
-```
-
----
-
-### 3. Initialize Cassandra Schema
-Set up the required schema in Cassandra for real-time and batch log processing.
-
-1. **Schema Definition:**
-
-   The schema includes:
-   - A `results` table for real-time log aggregation.
-   - A `daily_results` table for batch log processing.
-
-   ```sql
-   -- Create the keyspace
-   CREATE KEYSPACE IF NOT EXISTS nginx_logs
-   WITH replication = {
-     'class': 'SimpleStrategy',
-     'replication_factor': 1
-   };
-
-   -- Table for real-time log processing
-   CREATE TABLE IF NOT EXISTS nginx_logs.results (
-       window_start timestamp,
-       page_path text,
-       visit_count int,
-       unique_visitors int,
-       PRIMARY KEY (window_start, page_path)
-   );
-
-   -- Table for batch processing
-   CREATE TABLE IF NOT EXISTS nginx_logs.daily_results (
-       date date,
-       page_path text,
-       total_visits int,
-       unique_visitors int,
-       PRIMARY KEY (date, page_path)
-   );
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/rohithgoud30/nginx-cluster.git
+   cd nginx-cluster
    ```
 
-2. **Copy the Schema File into the Cassandra Container:**
+2. **Start the Project**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+3. **Verify Running Services**:
+   ```bash
+   docker ps
+   ```
+
+4. **Access Load Balancer**:
+   Visit the load balancer in your browser:
+   ```plaintext
+   http://localhost
+   ```
+
+---
+
+## Cassandra Schema Initialization
+
+1. **Copy Schema File into Cassandra Container**:
    ```bash
    docker cp cassandra-init/init.cql cassandra:/tmp/init.cql
    ```
 
-3. **Access the Cassandra Container:**
+2. **Access Cassandra Container**:
    ```bash
    docker exec -it cassandra bash
    ```
 
-4. **Run the Schema Script Using `cqlsh`:**
+3. **Run Schema Script**:
    ```bash
    cqlsh
    SOURCE '/tmp/init.cql';
    ```
 
-5. **Verify the Schema:**
+4. **Verify Schema**:
    ```bash
    DESCRIBE KEYSPACE nginx_logs;
    ```
 
+The schema defines:
+- **`results` Table**: Stores real-time log processing results.
+- **`daily_results` Table**: Aggregates daily statistics.
+
 ---
 
-## Monitoring and Logs
+## Verification Steps
 
-1. **Monitor Webserver Logs:**
+### Phase 1: Environment Setup
+
+1. **Verify Containers**:
    ```bash
-   docker logs -f webserver1
-   docker logs -f webserver2
-   docker logs -f webserver3
+   docker-compose ps
    ```
 
-2. **Check Real-Time Processing Results:**
+2. **Check NGINX Logs**:
    ```bash
-   docker exec -it kafka kafka-console-consumer \
-     --bootstrap-server kafka:9092 \
-     --topic PRODUCTS \
-     --from-beginning
+   docker logs webserver1
+   docker logs webserver2
+   docker logs webserver3
    ```
 
-3. **Verify Cassandra Tables:**
-   Query the `results` and `daily_results` tables:
+3. **Simulate Traffic**:
    ```bash
-   docker exec -it cassandra bash
-   cqlsh
-   SELECT * FROM nginx_logs.results;
-   SELECT * FROM nginx_logs.daily_results;
+   curl http://localhost:8080/products1.html
+   curl http://localhost:8080/products2.html
+   ```
+
+4. **Validate Logs**:
+   Inside the webserver container:
+   ```bash
+   docker exec -it webserver1 sh
+   tail -f /var/log/nginx/access.log
+   ```
+
+---
+
+### Phase 2: Log Forwarder and Kafka Integration
+
+1. **Verify Kafka Topics**:
+   ```bash
+   docker exec -it kafka kafka-topics --list --bootstrap-server kafka:9092
+   ```
+
+2. **Check Log Forwarder**:
+   ```bash
+   docker logs -f log-forwarder
+   ```
+
+3. **Inspect Kafka Messages**:
+   ```bash
+   docker exec -it kafka kafka-console-consumer --bootstrap-server kafka:9092 --topic RAWLOG --from-beginning
+   ```
+
+4. **Validate Cassandra Updates**:
+   Query the `results` table:
+   ```bash
+   docker exec -it cassandra cqlsh -e "SELECT * FROM nginx_logs.results LIMIT 5;"
+   ```
+
+---
+
+### Phase 3: Real-Time Processing
+
+1. **Verify Stream Processor Logs**:
+   ```bash
+   docker logs -f stream-processor
+   ```
+
+2. **Simulate Traffic**:
+   Use the traffic script:
+   ```bash
+   chmod +x test_traffic.sh
+   ./test_traffic.sh
+   ```
+
+3. **Monitor Kafka Topics**:
+   ```bash
+   docker exec -it kafka kafka-console-consumer --bootstrap-server kafka:9092 --topic PRODUCTS --from-beginning
+   ```
+
+4. **Validate Cassandra Aggregation**:
+   ```bash
+   docker exec -it cassandra cqlsh -e "SELECT * FROM nginx_logs.results ORDER BY window_start DESC LIMIT 5;"
+   ```
+
+---
+
+### Phase 4: Batch Processing
+
+1. **Run Batch Processor**:
+   ```bash
+   docker exec batch-processor python /app/batch_processor.py
+   ```
+
+2. **Verify Daily Results**:
+   Query the `daily_results` table:
+   ```bash
+   docker exec -it cassandra cqlsh -e "SELECT * FROM nginx_logs.daily_results ORDER BY date DESC LIMIT 5;"
+   ```
+
+3. **Set Up Cron Job**:
+   Add the cron job:
+   ```bash
+   crontab batch-processor/crontab
+   ```
+
+4. **Validate Cron Job**:
+   ```bash
+   crontab -l
    ```
 
 ---
 
 ## Stopping and Cleaning Up
 
-1. **Stop All Services:**
+1. **Stop All Services**:
    ```bash
    docker-compose down
    ```
 
-2. **Remove Unused Docker Resources:**
+2. **Remove Unused Resources**:
    ```bash
    docker system prune -a
    ```
-
----
-
-## Directory Structure
-```plaintext
-nginx-cluster/
-├── batch-processor/       # Handles batch processing jobs
-├── cassandra-init/        # Cassandra initialization scripts
-├── configs/               # Configurations for NGINX servers
-├── display-consumer/      # Consumer service for Kafka topics
-├── kafka/                 # Kafka log forwarding
-├── kafka-init/            # Kafka setup scripts
-├── kafka-streaming/       # Real-time Kafka stream processing
-├── log-forwarder/         # Log forwarding service
-├── logs/                  # Log files (access, error, and results)
-├── static/                # HTML static files
-├── stream-processor/      # Real-time log stream processor
-```
-
----
-
-## Additional Notes
-- Ensure Docker and Docker Compose are installed before starting the project.
-- Use `docker logs <container_name>` to troubleshoot individual services.
-
-This README includes all the necessary steps for running and setting up the project, ensuring a smooth start for any user. Save it as `README.md` in your project root directory. Let me know if you need further refinements!
