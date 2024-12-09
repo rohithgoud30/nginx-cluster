@@ -24,7 +24,3 @@ build/
 
 # Docker
 *.dockerfile
-logs/results.jtl 
-
-logs/access.log
-logs/results.jtl

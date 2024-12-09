@@ -73,7 +73,7 @@ Ensure the following are installed on your system:
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/yourusername/nginx-cluster.git
+   git clone https://github.com/rohithgoud30/nginx-cluster.git
    cd nginx-cluster
    ```
 
@@ -86,6 +86,7 @@ Ensure the following are installed on your system:
 
 3. **Verify Services:**
    Ensure all services are running:
+
    ```bash
    docker ps
    ```
@@ -114,8 +115,14 @@ Follow these steps to run the project:
    Open your browser and navigate to:
 
    ```plaintext
-   http://localhost
+   http://localhost:8080/
    ```
+
+   You should see one of the following messages:
+
+   - Welcome to Webserver3
+   - Welcome to Webserver2
+   - Welcome to Webserver1
 
 4. **Simulate Traffic:**
    Run the traffic generator to simulate HTTP requests:
@@ -150,8 +157,14 @@ Follow these steps to run the project:
 Once the services are running, access the NGINX load balancer in your browser:
 
 ```plaintext
-http://localhost
+http://localhost:8080/
 ```
+
+You should see one of the following messages:
+
+- Welcome to Webserver3
+- Welcome to Webserver2
+- Welcome to Webserver1
 
 ### Generate Traffic
 
@@ -203,6 +216,7 @@ logs/
 
 2. **Clean Up Docker Resources:**
    Remove unused images, containers, and networks:
+
    ```bash
    docker system prune -a
    ```
