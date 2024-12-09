@@ -13,6 +13,22 @@ This project implements a scalable NGINX cluster with Kafka, Cassandra, real-tim
 
 ---
 
+## Directory Structure
+```bash
+nginx-cluster/
+├── batch-processor/       # Handles batch processing jobs
+├── cassandra-init/        # Cassandra initialization scripts
+├── configs/               # Configurations for NGINX servers
+├── display-consumer/      # Consumer service for Kafka topics
+├── kafka/                 # Kafka log forwarding
+├── kafka-init/            # Kafka setup scripts
+├── kafka-streaming/       # Real-time Kafka stream processing
+├── log-forwarder/         # Log forwarding service
+├── logs/                  # Log files (access, error, and results)
+├── static/                # HTML static files
+├── stream-processor/      # Real-time log stream processor
+```
+
 ## Table of Contents
 1. [Quick Start](#quick-start)
 2. [Cassandra Schema Initialization](#cassandra-schema-initialization)
