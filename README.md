@@ -1,45 +1,80 @@
+````markdown
 # NGINX Cluster Project
 
-This project implements a scalable NGINX cluster with Kafka, Cassandra, and real-time and batch processing capabilities. It includes tools for log forwarding, Kafka streaming, and batch processing.
-
----
-
-**SENG 691 Data Intensive Application Final Project**
-
----
-
-## Table of Contents
-
-- [NGINX Cluster Project](#nginx-cluster-project)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Folder Structure](#folder-structure)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [How to Run](#how-to-run)
-  - [Usage](#usage)
-    - [Access NGINX Load Balancer](#access-nginx-load-balancer)
-    - [Generate Traffic](#generate-traffic)
-    - [Monitor Real-Time Logs](#monitor-real-time-logs)
-    - [Trigger Batch Processing](#trigger-batch-processing)
-    - [View Logs](#view-logs)
-  - [Stopping and Cleaning Up](#stopping-and-cleaning-up)
-  - [Configuration](#configuration)
-  - [Contributing](#contributing)
+This project implements a scalable NGINX cluster with Kafka, Cassandra, and real-time and batch log processing capabilities. The project supports containerized deployment using Docker Compose.
 
 ---
 
 ## Features
 
-- NGINX load balancer with multiple web servers.
-- Log forwarding to Kafka for streaming and processing.
-- Real-time log aggregation using Kafka streaming.
-- Batch processing of logs.
-- Integration with Cassandra for data storage.
+- **NGINX Load Balancer**: Distributes traffic across multiple web servers.
+- **Kafka Integration**: Facilitates log forwarding and real-time processing.
+- **Cassandra**: Stores results for real-time and batch processing.
+- **Batch and Real-Time Processing**: Process logs and aggregate results.
 
 ---
 
-## Folder Structure
+## Quick Start
+
+### 1. Clone the Repository
+
+Clone the project to your local machine:
+
+```bash
+git clone https://github.com/rohithgoud30/nginx-cluster.git
+cd nginx-cluster
+```
+````
+
+---
+
+### 2. Run the Project with Docker Compose
+
+Start all services using Docker Compose:
+
+```bash
+docker-compose up -d --build
+```
+
+Verify that all services are running:
+
+```bash
+docker ps
+```
+
+---
+
+### 3. Initialize Cassandra Schema
+
+Set up the required schema in Cassandra for real-time and batch log processing.
+
+1. **Copy the Schema File into the Cassandra Container:**
+
+   ```bash
+   docker cp cassandra-init/init.cql cassandra:/tmp/init.cql
+   ```
+
+2. **Access the Cassandra Container:**
+
+   ```bash
+   docker exec -it cassandra bash
+   ```
+
+3. **Run the Schema Script Using `cqlsh`:**
+
+   ```bash
+   cqlsh
+   SOURCE '/tmp/init.cql';
+   ```
+
+4. **Verify the Schema:**
+   ```bash
+   DESCRIBE KEYSPACE nginx_logs;
+   ```
+
+---
+
+## Directory Structure
 
 ```plaintext
 nginx-cluster/
@@ -58,179 +93,53 @@ nginx-cluster/
 
 ---
 
-## Prerequisites
+## Monitoring and Logs
 
-Ensure the following are installed on your system:
-
-- [Docker](https://www.docker.com/get-started)
-- [Docker Compose](https://docs.docker.com/compose/)
-- Git
-
----
-
-## Installation
-
-1. **Clone the Repository:**
+1. **Monitor Webserver Logs:**
 
    ```bash
-   git clone https://github.com/rohithgoud30/nginx-cluster.git
-   cd nginx-cluster
+   docker logs -f webserver1
+   docker logs -f webserver2
+   docker logs -f webserver3
    ```
 
-2. **Build and Start Services:**
-   Use Docker Compose to build and start the containers:
+2. **Check Real-Time Processing Results:**
 
    ```bash
-   docker-compose up -d --build
+   docker exec -it kafka kafka-console-consumer \
+     --bootstrap-server kafka:9092 \
+     --topic PRODUCTS \
+     --from-beginning
    ```
 
-3. **Verify Services:**
-   Ensure all services are running:
-
+3. **Verify Cassandra Tables:**
+   Access Cassandra to query the results:
    ```bash
-   docker ps
+   docker exec -it cassandra bash
+   cqlsh
+   SELECT * FROM nginx_logs.results;
+   SELECT * FROM nginx_logs.daily_results;
    ```
-
----
-
-## How to Run
-
-Follow these steps to run the project:
-
-1. **Start Docker Compose:**
-   If not already running, use:
-
-   ```bash
-   docker-compose up -d --build
-   ```
-
-2. **Verify Running Services:**
-   Check that all required containers are running:
-
-   ```bash
-   docker ps
-   ```
-
-3. **Access the NGINX Load Balancer:**
-   Open your browser and navigate to:
-
-   ```plaintext
-   http://localhost:8080/
-   ```
-
-   You should see one of the following messages:
-
-   - Welcome to Webserver3
-   - Welcome to Webserver2
-   - Welcome to Webserver1
-
-4. **Simulate Traffic:**
-   Run the traffic generator to simulate HTTP requests:
-
-   ```bash
-   cd simulation
-   python traffic-generator.py
-   ```
-
-5. **Monitor Kafka Logs:**
-   Check real-time processing logs from the Kafka stream:
-
-   ```bash
-   docker exec -it kafka_container_id kafka-console-consumer --bootstrap-server localhost:9092 --topic PRODUCTS
-   ```
-
-6. **Trigger Batch Processing Manually (Optional):**
-
-   ```bash
-   docker exec -it batch_processor_container_id python batch_processor.py
-   ```
-
-7. **Access Logs:**
-   Logs are located in the `logs/` directory of the project.
-
----
-
-## Usage
-
-### Access NGINX Load Balancer
-
-Once the services are running, access the NGINX load balancer in your browser:
-
-```plaintext
-http://localhost:8080/
-```
-
-You should see one of the following messages:
-
-- Welcome to Webserver3
-- Welcome to Webserver2
-- Welcome to Webserver1
-
-### Generate Traffic
-
-Simulate HTTP traffic using the traffic generator:
-
-```bash
-cd simulation
-python traffic-generator.py
-```
-
-### Monitor Real-Time Logs
-
-Monitor processing results from the Kafka stream:
-
-```bash
-docker exec -it kafka_container_id kafka-console-consumer --bootstrap-server localhost:9092 --topic PRODUCTS
-```
-
-### Trigger Batch Processing
-
-The batch processor runs periodically using cron, but you can trigger it manually:
-
-```bash
-docker exec -it batch_processor_container_id python batch_processor.py
-```
-
-### View Logs
-
-Logs are stored in the `logs/` directory:
-
-```plaintext
-logs/
-├── access.log
-├── batch_processor.log
-├── error.log
-└── results.jtl
-```
 
 ---
 
 ## Stopping and Cleaning Up
 
-1. **Stop and Remove Services:**
-   Stop all running containers and clean up associated resources:
+1. **Stop All Services:**
 
    ```bash
    docker-compose down
    ```
 
-2. **Clean Up Docker Resources:**
-   Remove unused images, containers, and networks:
-
+2. **Remove Unused Resources:**
    ```bash
    docker system prune -a
    ```
 
 ---
 
-## Configuration
+## Additional Notes
 
-- Modify Kafka and Cassandra settings in their respective directories.
-- Update `configs/loadbalancer.conf` for custom NGINX load balancer rules.
-- Change cron job schedules in `batch-processor/crontab` as needed.
-
----
-
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+- Ensure Docker and Docker Compose are installed and running before starting the project.
+- For troubleshooting Kafka, Cassandra, or NGINX issues, check the respective container logs using `docker logs <container_name>`.
+  markdown```
